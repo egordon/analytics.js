@@ -28,6 +28,7 @@ module.exports = [
   require('./mixpanel'),
   require('./olark'),
   require('./optimizely'),
+  require('./pathful'),
   require('./perfect-audience'),
   require('./pingdom'),
   require('./preact'),

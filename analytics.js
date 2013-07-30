@@ -393,13 +393,121 @@ function parse(str) {
 }
 
 });
+require.register("component-to-function/index.js", function(exports, require, module){
+
+/**
+ * Expose `toFunction()`.
+ */
+
+module.exports = toFunction;
+
+/**
+ * Convert `obj` to a `Function`.
+ *
+ * @param {Mixed} obj
+ * @return {Function}
+ * @api private
+ */
+
+function toFunction(obj) {
+  switch ({}.toString.call(obj)) {
+    case '[object Object]':
+      return objectToFunction(obj);
+    case '[object Function]':
+      return obj;
+    case '[object String]':
+      return stringToFunction(obj);
+    case '[object RegExp]':
+      return regexpToFunction(obj);
+    default:
+      return defaultToFunction(obj);
+  }
+}
+
+/**
+ * Default to strict equality.
+ *
+ * @param {Mixed} val
+ * @return {Function}
+ * @api private
+ */
+
+function defaultToFunction(val) {
+  return function(obj){
+    return val === obj;
+  }
+}
+
+/**
+ * Convert `re` to a function.
+ *
+ * @param {RegExp} re
+ * @return {Function}
+ * @api private
+ */
+
+function regexpToFunction(re) {
+  return function(obj){
+    return re.test(obj);
+  }
+}
+
+/**
+ * Convert property `str` to a function.
+ *
+ * @param {String} str
+ * @return {Function}
+ * @api private
+ */
+
+function stringToFunction(str) {
+  // immediate such as "> 20"
+  if (/^ *\W+/.test(str)) return new Function('_', 'return _ ' + str);
+
+  // properties such as "name.first" or "age > 18"
+  return new Function('_', 'return _.' + str);
+}
+
+/**
+ * Convert `object` to a function.
+ *
+ * @param {Object} object
+ * @return {Function}
+ * @api private
+ */
+
+function objectToFunction(obj) {
+  var match = {}
+  for (var key in obj) {
+    match[key] = typeof obj[key] === 'string'
+      ? defaultToFunction(obj[key])
+      : toFunction(obj[key])
+  }
+  return function(val){
+    if (typeof val !== 'object') return false;
+    for (var key in match) {
+      if (!(key in val)) return false;
+      if (!match[key](val[key])) return false;
+    }
+    return true;
+  }
+}
+
+});
 require.register("component-each/index.js", function(exports, require, module){
 
 /**
  * Module dependencies.
  */
 
-var type = require('type');
+var toFunction = require('to-function');
+var type;
+
+try {
+  type = require('type-component');
+} catch (e) {
+  type = require('type');
+}
 
 /**
  * HOP reference.
@@ -416,6 +524,7 @@ var has = Object.prototype.hasOwnProperty;
  */
 
 module.exports = function(obj, fn){
+  fn = toFunction(fn);
   switch (type(obj)) {
     case 'array':
       return array(obj, fn);
@@ -470,6 +579,7 @@ function array(obj, fn) {
     fn(obj[i], i);
   }
 }
+
 });
 require.register("component-event/index.js", function(exports, require, module){
 
@@ -3978,6 +4088,7 @@ module.exports = Provider.extend({
   }
 
 });
+
 });
 require.register("analytics/src/providers/hittail.js", function(exports, require, module){
 // http://www.hittail.com
@@ -4085,6 +4196,7 @@ module.exports = [
   require('./mixpanel'),
   require('./olark'),
   require('./optimizely'),
+  require('./pathful'),
   require('./perfect-audience'),
   require('./pingdom'),
   require('./preact'),
@@ -4782,6 +4894,42 @@ module.exports = Provider.extend({
 
 });
 });
+require.register("analytics/src/providers/pathful.js", function(exports, require, module){
+// http://pathful.com
+
+var Provider = require('../provider')
+  , load     = require('load-script');
+
+module.exports = Provider.extend({
+
+  name : 'Pathful',
+
+  key : 'apiKey',
+
+  defaults : {
+    apiKey : null
+  },
+
+  initialize : function (options, ready) {
+    window.pathful=window.pathful||[];
+    window.pathful.load=function(a){
+	window.PF_APPID=a;
+	var d=document;
+	var s=d.createElement('script');
+	s.type="text/javascript";
+	s.async=true;
+	s.src=("https:"==document.location.protocol)?"https://ssl.pathful.com/js/scripts/secure.js":"http://s.pathful.com/js/scripts/capture.js";
+	document.head.appendChild(s, d);
+    };
+    window.pathful.load(options.apiKey);
+
+    // Once playdoh is loaded, pathful is good to go!
+    ready();
+  },
+
+});
+
+});
 require.register("analytics/src/providers/perfect-audience.js", function(exports, require, module){
 // https://www.perfectaudience.com/docs#javascript_api_autoopen
 
@@ -5466,6 +5614,32 @@ function addTraits (userId, traits, tracker) {
   });
 }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 require.alias("avetisk-defaults/index.js", "analytics/deps/defaults/index.js");
 require.alias("avetisk-defaults/index.js", "defaults/index.js");
 
@@ -5478,6 +5652,8 @@ require.alias("component-cookie/index.js", "cookie/index.js");
 
 require.alias("component-each/index.js", "analytics/deps/each/index.js");
 require.alias("component-each/index.js", "each/index.js");
+require.alias("component-to-function/index.js", "component-each/deps/to-function/index.js");
+
 require.alias("component-type/index.js", "component-each/deps/type/index.js");
 
 require.alias("component-event/index.js", "analytics/deps/event/index.js");
@@ -5513,7 +5689,6 @@ require.alias("component-bind/index.js", "segmentio-bind-all/deps/bind/index.js"
 require.alias("component-type/index.js", "segmentio-bind-all/deps/type/index.js");
 
 require.alias("segmentio-bind-all/index.js", "segmentio-bind-all/index.js");
-
 require.alias("segmentio-canonical/index.js", "analytics/deps/canonical/index.js");
 require.alias("segmentio-canonical/index.js", "canonical/index.js");
 
@@ -5544,6 +5719,8 @@ require.alias("segmentio-type/index.js", "segmentio-new-date/deps/type/index.js"
 require.alias("segmentio-on-body/index.js", "analytics/deps/on-body/index.js");
 require.alias("segmentio-on-body/index.js", "on-body/index.js");
 require.alias("component-each/index.js", "segmentio-on-body/deps/each/index.js");
+require.alias("component-to-function/index.js", "component-each/deps/to-function/index.js");
+
 require.alias("component-type/index.js", "component-each/deps/type/index.js");
 
 require.alias("segmentio-store.js/store.js", "analytics/deps/store/store.js");
@@ -5553,23 +5730,19 @@ require.alias("segmentio-json/index.js", "segmentio-store.js/deps/json/index.js"
 require.alias("component-json-fallback/index.js", "segmentio-json/deps/json-fallback/index.js");
 
 require.alias("segmentio-store.js/store.js", "segmentio-store.js/index.js");
-
 require.alias("segmentio-top-domain/index.js", "analytics/deps/top-domain/index.js");
 require.alias("segmentio-top-domain/index.js", "analytics/deps/top-domain/index.js");
 require.alias("segmentio-top-domain/index.js", "top-domain/index.js");
 require.alias("component-url/index.js", "segmentio-top-domain/deps/url/index.js");
 
 require.alias("segmentio-top-domain/index.js", "segmentio-top-domain/index.js");
-
 require.alias("timoxley-next-tick/index.js", "analytics/deps/next-tick/index.js");
 require.alias("timoxley-next-tick/index.js", "next-tick/index.js");
 
 require.alias("yields-prevent/index.js", "analytics/deps/prevent/index.js");
 require.alias("yields-prevent/index.js", "prevent/index.js");
 
-require.alias("analytics/src/index.js", "analytics/index.js");
-
-if (typeof exports == "object") {
+require.alias("analytics/src/index.js", "analytics/index.js");if (typeof exports == "object") {
   module.exports = require("analytics");
 } else if (typeof define == "function" && define.amd) {
   define(function(){ return require("analytics"); });
