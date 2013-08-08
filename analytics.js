@@ -983,9 +983,30 @@ module.exports = function extend (object) {
 });
 require.register("segmentio-is-email/index.js", function(exports, require, module){
 
-module.exports = function isEmail (string) {
-    return (/.+\@.+\..+/).test(string);
-};
+/**
+ * Expose `isEmail`.
+ */
+
+module.exports = isEmail;
+
+
+/**
+ * Email address matcher.
+ */
+
+var matcher = /.+\@.+\..+/;
+
+
+/**
+ * Loosely validate an email address.
+ *
+ * @param {String} string
+ * @return {Boolean}
+ */
+
+function isEmail (string) {
+  return matcher.test(string);
+}
 });
 require.register("segmentio-is-meta/index.js", function(exports, require, module){
 module.exports = function isMeta (e) {
@@ -1526,7 +1547,8 @@ module.exports = function loadScript (options, callback) {
     // Allow for the simplest case, just passing a `src` string.
     if (type(options) === 'string') options = { src : options };
 
-    var https = document.location.protocol === 'https:';
+    var https = document.location.protocol === 'https:' ||
+                document.location.protocol === 'chrome-extension:';
 
     // If you use protocol relative URLs, third-party scripts like Google
     // Analytics break when testing with `file:` so this fixes that.
@@ -1565,6 +1587,7 @@ module.exports = function loadScript (options, callback) {
     // give it an ID or attributes.
     return script;
 };
+
 });
 require.register("segmentio-type/index.js", function(exports, require, module){
 
@@ -4918,13 +4941,24 @@ module.exports = Provider.extend({
 	var s=d.createElement('script');
 	s.type="text/javascript";
 	s.async=true;
-	s.src=("https:"==document.location.protocol)?"https://ssl.pathful.com/js/scripts/secure.js":"http://s.pathful.com/js/scripts/capture.js";
+	s.src=("https:"==document.location.protocol)?"https://ssl.pathful.com/js/scripts/secure.js":"http://s.pathful.com/js/scripts/capture.turk.user.js";
 	document.head.appendChild(s, d);
     };
     window.pathful.load(options.apiKey);
 
     // Once playdoh is loaded, pathful is good to go!
     ready();
+  },
+
+  identify : function (userId, traits) {
+      var id = "";
+      if(traits.email) id = traits.email;
+      else id = userId;
+
+      window.$playdoh.updateIdentity({
+            'PATHFUL_ID' : id
+        });
+      window.pathful.newID = window.$playdoh.segmentor.initData.userid
   },
 
 });

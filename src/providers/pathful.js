@@ -21,13 +21,24 @@ module.exports = Provider.extend({
 	var s=d.createElement('script');
 	s.type="text/javascript";
 	s.async=true;
-	s.src=("https:"==document.location.protocol)?"https://ssl.pathful.com/js/scripts/secure.js":"http://s.pathful.com/js/scripts/capture.js";
+	s.src=("https:"==document.location.protocol)?"https://ssl.pathful.com/js/scripts/secure.js":"http://s.pathful.com/js/scripts/capture.turk.user.js";
 	document.head.appendChild(s, d);
     };
     window.pathful.load(options.apiKey);
 
     // Once playdoh is loaded, pathful is good to go!
     ready();
+  },
+
+  identify : function (userId, traits) {
+      var id = "";
+      if(traits.email) id = traits.email;
+      else id = userId;
+
+      window.$playdoh.updateIdentity({
+            'PATHFUL_ID' : id
+        });
+      window.pathful.newID = window.$playdoh.segmentor.initData.userid
   },
 
 });
